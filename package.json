@@ -1,0 +1,14 @@
+{
+  "name": "pocket-india-site",
+  "version": "1.0.0",
+  "description": "Static Pocket India site with a lightweight backend API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "netlify-cli": "^23.11.0"
+  }
+}

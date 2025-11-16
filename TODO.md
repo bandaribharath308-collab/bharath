@@ -1,0 +1,4 @@
+- [x] Modify auth.js to call backend API directly
+- [ ] Test login/signup forms with backend
+- [ ] Add logout functionality to frontend pages
+- [ ] Update API_BASE for production deployment

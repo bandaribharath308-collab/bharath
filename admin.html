@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin — Pocket India</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .admin-wrap{max-width:1100px;margin:1.5rem auto}
+    .sidebar{padding:1rem}
+    .states-list{display:flex;flex-wrap:wrap;gap:.5rem}
+    .state-pill{padding:.4rem .7rem;border-radius:999px;background:#f3f4f6;border:1px solid rgba(15,23,42,0.04);cursor:pointer}
+    pre{white-space:pre-wrap;background:#0f172a;color:#e6eef6;padding:1rem;border-radius:8px;overflow:auto}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+    @media(min-width:900px){.two-col{grid-template-columns:300px 1fr}}
+  </style>
+</head>
+<body>
+  <div class="site-wrap admin-wrap">
+    <header>
+      <h1>Admin — Pocket India</h1>
+      <nav><a href="index.html">Site</a></nav>
+    </header>
+
+    <main class="two-col">
+      <aside class="sidebar">
+        <h2>States</h2>
+        <div id="states" class="states-list">Loading…</div>
+        <h3 style="margin-top:1rem">Contacts</h3>
+        <button id="refreshContacts" class="btn btn-outline">Refresh Contacts</button>
+        <div id="contacts" style="margin-top:.5rem"></div>
+      </aside>
+
+      <section>
+        <h2 id="pageTitle">Select a state</h2>
+        <div id="content">No state selected.</div>
+      </section>
+    </main>
+
+    <footer><p>Admin panel — local only</p></footer>
+  </div>
+
+<script>
+async function api(path, opts){
+  const res = await fetch('/api/' + path, opts);
+  if (!res.ok) throw new Error('API '+res.status);
+  return res.json();
+}
+
+async function loadStates(){
+  try{
+    const list = await api('states');
+    const container = document.getElementById('states');
+    container.innerHTML='';
+    list.forEach(s=>{
+      const b = document.createElement('button');
+      b.className='state-pill';
+      b.textContent=s.title || s.slug;
+      b.onclick = ()=> loadState(s.slug);
+      container.appendChild(b);
+    });
+  }catch(e){document.getElementById('states').textContent='Error loading states'}
+}
+
+async function loadState(slug){
+  document.getElementById('pageTitle').textContent = 'Loading '+slug+'…';
+  try{
+    const parsed = await api('state-json/'+slug);
+    document.getElementById('pageTitle').textContent = parsed.title || parsed.slug;
+    const c = document.getElementById('content');
+    c.innerHTML = '';
+    parsed.sections.forEach(sec=>{
+      const h = document.createElement('h3'); h.textContent = sec.title || 'Section';
+      const p = document.createElement('p'); p.textContent = sec.text || '';
+      c.appendChild(h); c.appendChild(p);
+      if (sec.figures && sec.figures.length){
+        const g = document.createElement('div'); g.className='mini-gallery';
+        sec.figures.forEach(f=>{
+          const fig = document.createElement('figure');
+          const img = document.createElement('img'); img.src = f.img; img.loading='lazy'; img.style.maxWidth='120px';
+          const cap = document.createElement('figcaption'); cap.textContent = f.caption || '';
+          fig.appendChild(img); fig.appendChild(cap); g.appendChild(fig);
+        });
+        c.appendChild(g);
+      } else if (sec.images && sec.images.length){
+        const g = document.createElement('div'); g.className='mini-gallery';
+        sec.images.forEach(src=>{ const img=document.createElement('img'); img.src=src; img.loading='lazy'; img.style.maxWidth='120px'; g.appendChild(img); });
+        c.appendChild(g);
+      }
+      if (sec.list && sec.list.length){
+        const ul = document.createElement('ul'); sec.list.forEach(li=>{ const liEl=document.createElement('li'); liEl.textContent=li; ul.appendChild(liEl); }); c.appendChild(ul);
+      }
+      c.appendChild(document.createElement('hr'));
+    });
+  }catch(e){document.getElementById('content').textContent='Error loading state: '+e.message}
+}
+
+async function loadContacts(){
+  try{
+    const res = await api('contacts');
+    const container = document.getElementById('contacts');
+    container.innerHTML='';
+    if (!res.contacts || !res.contacts.length){ container.textContent='No contacts'; return; }
+    res.contacts.slice().reverse().forEach(c=>{
+      const d = document.createElement('div'); d.style.borderTop='1px solid #eee'; d.style.padding='6px 0';
+      d.innerHTML = `<strong>${escapeHtml(c.name)}</strong> <small>${escapeHtml(c.email||'')}</small><div>${escapeHtml(c.message)}</div><small>${escapeHtml(c.ts)}</small>`;
+      container.appendChild(d);
+    });
+  }catch(e){document.getElementById('contacts').textContent='Error loading contacts'}
+}
+
+function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+document.getElementById('refreshContacts').addEventListener('click', loadContacts);
+loadStates(); loadContacts();
+</script>
+</body>
+</html>
